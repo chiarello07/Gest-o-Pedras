@@ -365,7 +365,7 @@ export default function Index() {
               className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold text-xs sm:text-sm px-4 h-10 shadow-md transition flex items-center gap-1.5"
             >
               <Plus className="h-4 w-4" />
-              <span>+ Novo Produto</span>
+              <span>Novo Produto</span>
             </Button>
           </div>
         </div>
