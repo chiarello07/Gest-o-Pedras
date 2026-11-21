@@ -53,11 +53,52 @@ export interface SaleItem extends RecordModel {
 
 export type MovementType = 'entrada' | 'saida'
 
+/** Categorias de movimentação financeira (ordem fixa definida pelo usuário). */
+export type MovementCategory =
+  | 'compra_produtos'
+  | 'aporte_socio'
+  | 'aporte_investidor'
+  | 'despesa_operacional'
+  | 'marketing'
+  | 'outro'
+
+export const movementCategories: MovementCategory[] = [
+  'compra_produtos',
+  'aporte_socio',
+  'aporte_investidor',
+  'despesa_operacional',
+  'marketing',
+  'outro',
+]
+
+export const movementCategoryLabels: Record<MovementCategory, string> = {
+  compra_produtos: 'Compra de Produtos',
+  aporte_socio: 'Aporte de Sócio',
+  aporte_investidor: 'Aporte de Investidor',
+  despesa_operacional: 'Despesa Operacional',
+  marketing: 'Marketing',
+  outro: 'Outro',
+}
+
 export interface Movement extends RecordModel {
   type: MovementType
   amount: number
   description: string
   date: string
+  category?: MovementCategory
+  /** Produtos do estoque vinculados (usado em compras de produtos) */
+  products?: string[]
+  created: string
+  updated: string
+  expand?: {
+    products?: Product[]
+  }
+}
+
+/** Configurações simples chave/valor (ex.: percentual da reserva da empresa). */
+export interface Setting extends RecordModel {
+  key: string
+  value: string
   created: string
   updated: string
 }
