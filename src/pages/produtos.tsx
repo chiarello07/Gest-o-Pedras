@@ -14,12 +14,15 @@ import {
 import type { Product, ProductCategory } from '@/types/database'
 import { getProducts } from '@/services/products'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/context/AuthContext'
 import { formatCurrency, AnimatedCounter } from '@/components/AnimatedCounter'
 import ProductModal, { categoryLabels, categoryStyles } from '@/components/ProductModal'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export default function Produtos() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -207,14 +210,16 @@ export default function Produtos() {
               </button>
             </div>
 
-            {/* Botão Novo Produto */}
-            <Button
-              onClick={handleOpenCreate}
-              className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold text-xs sm:text-sm h-10 px-4 flex items-center gap-1.5 shadow"
-            >
-              <Plus className="h-4 w-4" />
-              <span>+ Novo Produto</span>
-            </Button>
+            {/* Botão Novo Produto (apenas Admin) */}
+            {isAdmin && (
+              <Button
+                onClick={handleOpenCreate}
+                className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold text-xs sm:text-sm h-10 px-4 flex items-center gap-1.5 shadow"
+              >
+                <Plus className="h-4 w-4" />
+                <span>+ Novo Produto</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -301,7 +306,7 @@ export default function Produtos() {
                   return (
                     <tr
                       key={p.id}
-                      onClick={() => handleOpenEdit(p)}
+                      onClick={() => isAdmin && handleOpenEdit(p)}
                       className="hover:bg-[#FAF8F3] transition-colors cursor-pointer group"
                     >
                       <td className="py-3.5 px-4">
@@ -415,8 +420,8 @@ export default function Produtos() {
             return (
               <div
                 key={p.id}
-                onClick={() => handleOpenEdit(p)}
-                className="gem-card p-5 cursor-pointer gem-lift flex flex-col justify-between group"
+                onClick={() => isAdmin && handleOpenEdit(p)}
+                className={`gem-card p-5 gem-lift flex flex-col justify-between group ${isAdmin ? 'cursor-pointer' : 'cursor-default'}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-3">

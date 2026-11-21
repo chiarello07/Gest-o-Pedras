@@ -15,12 +15,15 @@ import {
 import type { Product, Movement, Sale } from '@/types/database'
 import { getDashboardData } from '@/services/dashboard'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/context/AuthContext'
 import { AnimatedCounter, formatCurrency } from '@/components/AnimatedCounter'
 import { FinancialChart } from '@/components/FinancialChart'
 import ProductModal, { categoryLabels, categoryStyles } from '@/components/ProductModal'
 import { Button } from '@/components/ui/button'
 
 export default function Index() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
   const [sales, setSales] = useState<Sale[]>([])
@@ -305,7 +308,7 @@ export default function Index() {
             {highlightProduct && (
               <div className="pt-4 mt-4 border-t border-[#E8E4DA]/60">
                 <Button
-                  onClick={() => handleOpenEdit(highlightProduct)}
+                  onClick={() => isAdmin && handleOpenEdit(highlightProduct)}
                   variant="outline"
                   className="w-full text-xs font-semibold border-[#C9A227] text-[#8E7118] hover:bg-[#FAF3E0]"
                 >
@@ -362,14 +365,16 @@ export default function Index() {
               </button>
             </div>
 
-            {/* + Novo Produto Button (Gold) */}
-            <Button
-              onClick={handleOpenCreate}
-              className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold text-xs sm:text-sm px-4 h-10 shadow-md transition flex items-center gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Novo Produto</span>
-            </Button>
+            {/* + Novo Produto Button (Gold) — apenas Admin */}
+            {isAdmin && (
+              <Button
+                onClick={handleOpenCreate}
+                className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold text-xs sm:text-sm px-4 h-10 shadow-md transition flex items-center gap-1.5"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Novo Produto</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -390,12 +395,14 @@ export default function Index() {
             <p className="text-xs text-[#6B7A70] max-w-sm mt-1 mb-4">
               Comece adicionando pedras naturais, joias ou artigos decorativos ao seu atelier.
             </p>
-            <Button
-              onClick={handleOpenCreate}
-              className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold"
-            >
-              + Adicionar Primeiro Produto
-            </Button>
+            {isAdmin && (
+              <Button
+                onClick={handleOpenCreate}
+                className="bg-[#C9A227] hover:bg-[#A8861D] text-white font-semibold"
+              >
+                + Adicionar Primeiro Produto
+              </Button>
+            )}
           </div>
         ) : viewMode === 'cards' ? (
           /* CARD VIEW: Responsive Grid */
@@ -555,7 +562,7 @@ export default function Index() {
                     return (
                       <tr
                         key={p.id}
-                        onClick={() => handleOpenEdit(p)}
+                        onClick={() => isAdmin && handleOpenEdit(p)}
                         className="hover:bg-[#FAF8F3] transition-colors cursor-pointer group"
                       >
                         <td className="py-3.5 px-4">

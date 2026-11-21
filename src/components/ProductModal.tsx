@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/context/AuthContext'
 
 interface ProductModalProps {
   open: boolean
@@ -55,6 +56,8 @@ export default function ProductModal({
   onSuccess,
 }: ProductModalProps) {
   const { toast } = useToast()
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -399,7 +402,7 @@ export default function ProductModal({
 
             {/* Ações */}
             <div className="flex items-center justify-between pt-4 border-t border-[#E8E4DA]">
-              {isEditing ? (
+              {isEditing && isAdmin ? (
                 <Button
                   type="button"
                   variant="outline"

@@ -2,11 +2,17 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import type { AuthModel } from 'pocketbase'
 import pb from '@/lib/pocketbase/client'
 
+export type UserRole = 'admin' | 'gestor'
+
 interface AuthContextType {
   user: AuthModel | null
   token: string | null
   isValid: boolean
   isLoading: boolean
+  /** Perfil de acesso do usuário logado ('admin' quando não definido). */
+  role: UserRole
+  /** false quando o usuário está desativado no banco (bloqueado no login). */
+  isActive: boolean
   login: (email: string, pass: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -14,7 +20,15 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const normalizeRole = (u: AuthModel | null): UserRole =>
+  u && (u as { role?: string }).role === 'gestor' ? 'gestor' : 'admin'
+
+const isActiveUser = (u: AuthModel | null): boolean =>
+  !u || (u as { status?: string }).status !== 'inativo'
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [role, setRole] = useState<UserRole>(normalizeRole(pb.authStore.record))
+  const [isActive, setIsActive] = useState<boolean>(isActiveUser(pb.authStore.record))
   const [user, setUser] = useState<AuthModel | null>(pb.authStore.record)
   const [token, setToken] = useState<string | null>(pb.authStore.token)
   const [isLoading, setIsLoading] = useState(true)
@@ -24,6 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsub = pb.authStore.onChange((newToken, newModel) => {
       setToken(newToken)
       setUser(newModel)
+      setRole(normalizeRole(newModel))
+      setIsActive(isActiveUser(newModel))
     })
 
     // Valida sessão inicial
@@ -33,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then((res) => {
           setUser(res.record)
           setToken(res.token)
+          setRole(normalizeRole(res.record))
+          setIsActive(isActiveUser(res.record))
         })
         .catch(() => {
           pb.authStore.clear()
@@ -55,12 +73,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await pb.collection('users').authWithPassword(email, pass)
     setUser(res.record)
     setToken(res.token)
+    setRole(normalizeRole(res.record))
+    setIsActive(isActiveUser(res.record))
   }
 
   const logout = () => {
     pb.authStore.clear()
     setUser(null)
     setToken(null)
+    setRole('admin')
+    setIsActive(true)
   }
 
   const refreshUser = async () => {
@@ -69,6 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await pb.collection('users').authRefresh()
         setUser(res.record)
         setToken(res.token)
+        setRole(normalizeRole(res.record))
+        setIsActive(isActiveUser(res.record))
       } catch (_) {
         // ignora
       }
@@ -82,6 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isValid: !!pb.authStore.isValid && !!user,
         isLoading,
+        role,
+        isActive,
         login,
         logout,
         refreshUser,

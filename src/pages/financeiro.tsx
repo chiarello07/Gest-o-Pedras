@@ -17,6 +17,7 @@ import { AnimatedCounter, formatCurrency } from '@/components/AnimatedCounter'
 import NewMovementModal from '@/components/NewMovementModal'
 import ResultsSplitSection from '@/components/ResultsSplitSection'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/context/AuthContext'
 import pb from '@/lib/pocketbase/client'
 import { getMovements } from '@/services/movements'
 import { getSales } from '@/services/sales'
@@ -86,6 +87,8 @@ function withinPeriod(dateStr: string, period: PeriodFilter): boolean {
 }
 
 export default function Financeiro() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [movements, setMovements] = useState<Movement[]>([])
   const [sales, setSales] = useState<Sale[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -458,13 +461,15 @@ export default function Financeiro() {
       )}
 
       {/* ========================================================= */}
-      {/* 4. DIVISÃO DE RESULTADOS                                  */}
+      {/* 4. DIVISÃO DE RESULTADOS (visível apenas para Admin)      */}
       {/* ========================================================= */}
-      <ResultsSplitSection
-        totalVendido={kpis.totalVendido}
-        custoVendido={kpis.totalVendido - lucroLiquido}
-        periodo={periodLabels[periodFilter]}
-      />
+      {isAdmin && (
+        <ResultsSplitSection
+          totalVendido={kpis.totalVendido}
+          custoVendido={kpis.totalVendido - lucroLiquido}
+          periodo={periodLabels[periodFilter]}
+        />
+      )}
 
       <NewMovementModal open={modalOpen} onOpenChange={setModalOpen} onSuccess={loadData} />
     </div>

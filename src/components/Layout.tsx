@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -16,6 +16,8 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
+import { getStoreSettings, type StorePreferences } from '@/services/settings'
+import type { AuthModel } from 'pocketbase'
 import {
   Dialog,
   DialogContent,
@@ -26,12 +28,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-const navItems = [
+interface NavItem {
+  to: string
+  label: string
+  icon: React.ElementType
+  adminOnly?: boolean
+}
+
+const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/produtos', label: 'Produtos', icon: Gem },
   { to: '/vendas', label: 'Vendas', icon: ShoppingBag },
   { to: '/financeiro', label: 'Financeiro', icon: CircleDollarSign },
-  { to: '/configuracoes', label: 'Configurações', icon: Settings },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings, adminOnly: true },
 ]
 
 const routeTitles: Record<string, string> = {
@@ -43,7 +52,7 @@ const routeTitles: Record<string, string> = {
 }
 
 export default function Layout() {
-  const { user, logout, isValid, isLoading } = useAuth()
+  const { user, logout, isValid, isLoading, role } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -53,6 +62,35 @@ export default function Layout() {
   const [newEmail, setNewEmail] = useState('')
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [storePrefs, setStorePrefs] = useState<StorePreferences>({
+    storeName: '',
+    logoUrl: '',
+  })
+
+  // Preferências da loja (nome + logo exibidos na marca do menu lateral)
+  useEffect(() => {
+    let cancelled = false
+    getStoreSettings()
+      .then((prefs) => {
+        if (!cancelled) setStorePrefs(prefs)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Gestor não acessa a tela de Configurações: redireciona para o dashboard
+  useEffect(() => {
+    if (isLoading || !isValid) return
+    if (role !== 'admin' && location.pathname === '/configuracoes') {
+      navigate('/', { replace: true })
+    }
+  }, [isLoading, isValid, role, location.pathname, navigate])
+
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || role === 'admin')
+  const brandName = storePrefs.storeName || 'Pedras & Cristais'
+  const brandLogoUrl = storePrefs.logoUrl
 
   // Proteção de rota para páginas dentro do Layout
   React.useEffect(() => {
@@ -135,12 +173,20 @@ export default function Layout() {
       <div>
         {/* Brand Mark */}
         <div className="flex items-center gap-3 px-3 py-4 border-b border-[#2A5040]/60">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9A227] to-[#8E7118] shadow-md shadow-black/20 text-white">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="font-serif text-lg font-bold tracking-wide text-[#FAF8F3]">
-              Pedras & Cristais
+          {brandLogoUrl ? (
+            <img
+              src={brandLogoUrl}
+              alt={brandName}
+              className="h-10 w-10 shrink-0 rounded-xl object-contain bg-[#FAF8F3]/95 p-1 shadow-md shadow-black/20"
+            />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9A227] to-[#8E7118] shadow-md shadow-black/20 text-white">
+              <Sparkles className="h-5 w-5" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="font-serif text-lg font-bold tracking-wide text-[#FAF8F3] truncate">
+              {brandName}
             </h1>
             <p className="text-[11px] uppercase tracking-wider text-[#C9A227] font-semibold">
               Gestão de Atelier
@@ -150,7 +196,7 @@ export default function Layout() {
 
         {/* Navigation list */}
         <nav className="mt-6 flex flex-col gap-1.5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.to
             return (
