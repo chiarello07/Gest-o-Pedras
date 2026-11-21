@@ -16,8 +16,8 @@ import {
 import { useAuth } from '@/context/AuthContext'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
-import { getStoreSettings, type StorePreferences } from '@/services/settings'
 import type { AuthModel } from 'pocketbase'
+import { getStoreSettings, type StoreSettings } from '@/services/settings'
 import {
   Dialog,
   DialogContent,
@@ -62,7 +62,7 @@ export default function Layout() {
   const [newEmail, setNewEmail] = useState('')
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
-  const [storePrefs, setStorePrefs] = useState<StorePreferences>({
+  const [storePrefs, setStorePrefs] = useState<{ storeName: string; logoUrl: string }>({
     storeName: '',
     logoUrl: '',
   })
