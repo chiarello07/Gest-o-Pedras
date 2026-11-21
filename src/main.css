@@ -1,0 +1,144 @@
+/* Global styles - Theme, font, utilities, animations and global components */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Paleta Pedra Lapidada (Gestão Pedras & Cristais) */
+    /* Fundo: #FAF8F3 (warm quartz white) */
+    --background: 43 33% 97%;
+    /* Texto principal: #1F2A24 */
+    --foreground: 147 15% 15%;
+
+    /* Cartão / Superfície: #FFFFFF */
+    --card: 0 0% 100%;
+    --card-foreground: 147 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 147 15% 15%;
+
+    /* Verde primário floresta: #1E3A2F (hsl 156, 32%, 17%) */
+    --primary: 156 32% 17%;
+    --primary-foreground: 43 33% 97%;
+
+    /* Dourado Citrino / Acento: #C9A227 (hsl 45, 67%, 47%) */
+    --accent-gold: 45 67% 47%;
+    --accent-gold-hover: 45 70% 38%;
+
+    /* Verde musgo / Sucesso: #3E7C4F */
+    --secondary: 137 33% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted: fundo suave e texto secundário #6B7A70 */
+    --muted: 45 15% 94%;
+    --muted-foreground: 147 7% 45%;
+
+    --accent: 45 35% 92%;
+    --accent-foreground: 156 32% 17%;
+
+    /* Terracota / Erro / Saídas: #B3452F */
+    --destructive: 10 58% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Bordas: #E8E4DA */
+    --border: 43 20% 88%;
+    --input: 43 20% 88%;
+    --ring: 45 67% 47%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar verde profundo escuro */
+    --sidebar-background: 156 32% 17%;
+    --sidebar-foreground: 43 33% 96%;
+    --sidebar-primary: 45 67% 47%;
+    --sidebar-primary-foreground: 156 32% 17%;
+    --sidebar-accent: 156 25% 23%;
+    --sidebar-accent-foreground: 43 33% 96%;
+    --sidebar-border: 156 28% 14%;
+    --sidebar-ring: 45 67% 47%;
+  }
+
+  body {
+    background-color: #faf8f3;
+    color: #1f2a24;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-serif-heading {
+    font-family: 'Fraunces', serif;
+  }
+
+  /* Números tabulares para alinhar valores monetários */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* NEVER REMOVE THIS */
+  section[aria-label='Notifications alt+T'] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@layer utilities {
+  /* Animações Pedra Lapidada */
+  @keyframes crystallineFade {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes barBloom {
+    from {
+      transform: scaleY(0);
+      opacity: 0.2;
+    }
+    to {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-crystalline {
+    animation: crystallineFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-bar-bloom {
+    transform-origin: bottom;
+    animation: barBloom 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Gem lift */
+  .gem-lift {
+    transition:
+      transform 150ms ease,
+      box-shadow 150ms ease;
+  }
+  .gem-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(30, 58, 47, 0.12);
+  }
+
+  .gem-card {
+    background: #ffffff;
+    border: 1px solid #e8e4da;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(30, 58, 47, 0.06);
+  }
+}
