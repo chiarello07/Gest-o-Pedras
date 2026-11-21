@@ -21,14 +21,34 @@ export interface Product extends RecordModel {
 
 export type SaleChannel = 'instagram' | 'whatsapp' | 'loja_online' | 'fisico'
 
+export type SaleStatus = 'concluida' | 'pendente' | 'cancelada'
+
 export interface Sale extends RecordModel {
-  product: string
-  quantity: number
+  /** Legado: vendas de item único (novas vendas usam sale_items) */
+  product?: string
+  quantity?: number
+  customer?: string
+  status?: SaleStatus
+  /** JSON string com os itens enviados no registro da venda (uso do pb_hook) */
+  items?: string
   total: number
   channel: SaleChannel
   date: string
   created: string
   updated: string
+}
+
+export interface SaleItem extends RecordModel {
+  sale: string
+  product: string
+  quantity: number
+  unit_price: number
+  subtotal: number
+  created: string
+  updated: string
+  expand?: {
+    product?: Product
+  }
 }
 
 export type MovementType = 'entrada' | 'saida'
