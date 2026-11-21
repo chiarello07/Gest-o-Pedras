@@ -14,6 +14,7 @@ export default function CriarConta() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [role, setRole] = useState<'admin' | 'gestor'>('gestor')
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -39,6 +40,7 @@ export default function CriarConta() {
         email,
         password,
         passwordConfirm,
+        role,
       })
 
       // Envia solicitação de verificação por e-mail
@@ -148,6 +150,20 @@ export default function CriarConta() {
             {errors.passwordConfirm && (
               <p className="text-xs text-[#B3452F] mt-1">{errors.passwordConfirm}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#1E3A2F] mb-1">
+              Perfil de Acesso
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as 'admin' | 'gestor')}
+              className="h-10 w-full rounded-md border border-[#E8E4DA] bg-white px-3 text-sm text-[#1E3A2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
+            >
+              <option value="gestor">Gestor</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <Button

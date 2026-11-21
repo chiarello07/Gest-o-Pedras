@@ -12,9 +12,8 @@ import {
   Gem,
   Award,
 } from 'lucide-react'
-import type { Product, Movement } from '@/types/database'
-import { getProducts } from '@/services/products'
-import { getMovements } from '@/services/movements'
+import type { Product, Movement, Sale } from '@/types/database'
+import { getDashboardData } from '@/services/dashboard'
 import { useRealtime } from '@/hooks/use-realtime'
 import { AnimatedCounter, formatCurrency } from '@/components/AnimatedCounter'
 import { FinancialChart } from '@/components/FinancialChart'
@@ -24,6 +23,7 @@ import { Button } from '@/components/ui/button'
 export default function Index() {
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
+  const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
 
   // Visualização de Estoque: 'cards' ou 'table'
@@ -33,15 +33,13 @@ export default function Index() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
-  // Carrega produtos e movimentações do PocketBase
+  // Carrega produtos, movimentações e vendas reais do PocketBase
   const fetchData = useCallback(async () => {
     try {
-      const [prods, moves] = await Promise.all([
-        getProducts({ sort: '-created' }),
-        getMovements({ sort: '-date' }),
-      ])
-      setProducts(prods)
-      setMovements(moves)
+      const data = await getDashboardData()
+      setProducts(data.products)
+      setMovements(data.movements)
+      setSales(data.sales)
     } catch (err) {
       console.error('Falha ao carregar dados do dashboard:', err)
     } finally {
@@ -59,6 +57,10 @@ export default function Index() {
   })
 
   useRealtime<Movement>('movements', () => {
+    fetchData()
+  })
+
+  useRealtime<Sale>('sales', () => {
     fetchData()
   })
 
@@ -82,14 +84,15 @@ export default function Index() {
     return Math.max(potentialRevenue - totalStockCost, 0)
   }, [potentialRevenue, totalStockCost])
 
-  // 4. Caixa atual = soma(entradas) - soma(saidas)
+  // 4. Caixa atual = soma(entradas) - soma(saidas) + vendas reais registradas
   const currentCash = useMemo(() => {
+    const salesTotal = sales.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
     return movements.reduce((acc, m) => {
       if (m.type === 'entrada') return acc + (Number(m.amount) || 0)
       if (m.type === 'saida') return acc - (Number(m.amount) || 0)
       return acc
-    }, 0)
-  }, [movements])
+    }, salesTotal)
+  }, [movements, sales])
 
   // Destaque do Dia: produto com maior margem de lucro com estoque > 0
   const highlightProduct = useMemo(() => {

@@ -6,6 +6,7 @@ export default function Vendas() {
       <div className="gem-card max-w-md w-full p-8 sm:p-10 flex flex-col items-center relative overflow-hidden">
         {/* Subtle decorative crystal glow */}
         <div className="absolute -top-12 -right-12 h-32 w-32 rounded-full bg-[#C9A227]/10 blur-2xl pointer-events-none" />
+        {/* Dados reais já disponíveis na coleção `sales` do PocketBase */}
 
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EFF3F0] text-[#3E7C4F] mb-5 border border-[#3E7C4F]/20 shadow-sm">
           <ShoppingBag className="h-8 w-8" />

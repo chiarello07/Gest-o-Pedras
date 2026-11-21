@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-21T10:54:44.472Z",
+  "generatedAt": "2026-11-21T11:34:13.340Z",
   "collections": [
     {
       "name": "users",
@@ -8,7 +8,7 @@
         "list": "id = @request.auth.id",
         "view": "id = @request.auth.id",
         "create": "",
-        "update": "id = @request.auth.id",
+        "update": "id = @request.auth.id && @request.body.role:changed = false && @request.body.verified:changed = false",
         "delete": "id = @request.auth.id"
       },
       "fields": [
@@ -37,6 +37,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "gestor"]
         }
       ],
       "indexes": [
@@ -118,6 +125,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["disponivel", "esgotado"]
         }
       ],
       "indexes": [
@@ -174,11 +188,82 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "category",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["venda", "compra", "despesa", "outros"]
         }
       ],
       "indexes": [
         "CREATE INDEX idx_movements_date ON movements (date)",
         "CREATE INDEX idx_movements_type ON movements (type)"
+      ]
+    },
+    {
+      "name": "sales",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "product",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "products"
+        },
+        {
+          "name": "quantity",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "channel",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["instagram", "whatsapp", "loja_online", "fisico"]
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_sales_product ON sales (product)",
+        "CREATE INDEX idx_sales_date ON sales (date)",
+        "CREATE INDEX idx_sales_channel ON sales (channel)"
       ]
     }
   ]
