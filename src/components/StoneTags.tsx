@@ -1,21 +1,31 @@
-import { stoneLabels, stoneStyles } from '@/lib/labels'
-import type { ProductStone } from '@/types/database'
+import type { Stone } from '@/types/database'
+import { stoneTagColor, stoneTagColorByName } from '@/lib/stone-colors'
 
 /**
  * Etiqueta discreta com as pedras que compõem o produto.
  * Some quando o produto não tem nenhuma pedra (base, led, sacola...).
+ * Recebe `stonesIndex` (mapa id → Stone) carregado pela tela via useStones();
+ * pedras não encontradas no mapa caem para a cor determinística por nome.
  */
-export function ProductStoneTags({ stones }: { stones?: ProductStone[] }) {
+export function ProductStoneTags({
+  stones,
+  stonesIndex,
+}: {
+  stones?: string[]
+  stonesIndex?: Record<string, Stone>
+}) {
   if (!stones || stones.length === 0) return null
 
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
-      {stones.map((stone) => {
-        const style = stoneStyles[stone]
-        if (!style) return null
+      {stones.map((stoneId) => {
+        const stone = stonesIndex?.[stoneId]
+        const label = stone?.name ?? stoneId
+        const style = stone ? stoneTagColor(stone) : stoneTagColorByName(stoneId)
+
         return (
           <span
-            key={stone}
+            key={stoneId}
             style={{
               backgroundColor: style.bg,
               color: style.text,
@@ -23,7 +33,7 @@ export function ProductStoneTags({ stones }: { stones?: ProductStone[] }) {
             }}
             className="px-2 py-0.5 rounded-full text-[10px] font-medium border"
           >
-            {stoneLabels[stone] || stone}
+            {label}
           </span>
         )
       })}

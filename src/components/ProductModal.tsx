@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Sparkles, Trash2, AlertCircle } from 'lucide-react'
-import type { Product, ProductCategory, ProductStone, ProductUnit } from '@/types/database'
+import type { Product, ProductCategory, ProductUnit } from '@/types/database'
 import { createProduct, updateProduct, deleteProduct } from '@/services/products'
-import {
-  categoryLabels,
-  categoryStyles,
-  stoneLabels,
-  stoneOptions,
-  stoneStyles,
-} from '@/lib/labels'
+import { categoryLabels, categoryStyles } from '@/lib/labels'
+import { useStones } from '@/hooks/useStones'
+import StoneTagInput from '@/components/StoneTagInput'
 import {
   Dialog,
   DialogContent,
@@ -49,6 +45,7 @@ export default function ProductModal({
 }: ProductModalProps) {
   const { toast } = useToast()
   const { role } = useAuth()
+  const { stones: stoneOptions, createStone } = useStones()
   const isAdmin = role === 'admin'
 
   const [name, setName] = useState('')
@@ -59,7 +56,7 @@ export default function ProductModal({
   const [price, setPrice] = useState<string>('')
   const [promoPrice, setPromoPrice] = useState<string>('')
   const [category, setCategory] = useState<ProductCategory | ''>('')
-  const [stones, setStones] = useState<ProductStone[]>([])
+  const [stones, setStones] = useState<string[]>([])
 
   const [saving, setSaving] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -289,7 +286,7 @@ export default function ProductModal({
               </div>
             </div>
 
-            {/* Pedras e composição */}
+            {/* Pedras e composição (tags dinâmicas) */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-semibold text-[#1E3A2F]">Pedras e Composição</label>
@@ -297,39 +294,12 @@ export default function ProductModal({
                   Opcional — ex.: base, led ou sacola
                 </span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {stoneOptions.map((stone) => {
-                  const selected = stones.includes(stone)
-                  const style = stoneStyles[stone]
-                  return (
-                    <button
-                      key={stone}
-                      type="button"
-                      onClick={() =>
-                        setStones((prev) =>
-                          prev.includes(stone) ? prev.filter((s) => s !== stone) : [...prev, stone],
-                        )
-                      }
-                      style={
-                        selected
-                          ? {
-                              backgroundColor: style.bg,
-                              color: style.text,
-                              borderColor: style.border,
-                            }
-                          : undefined
-                      }
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${
-                        selected
-                          ? ''
-                          : 'bg-white text-[#6B7A70] border-[#E8E4DA] hover:border-[#C9A227] hover:text-[#1E3A2F]'
-                      }`}
-                    >
-                      {stoneLabels[stone]}
-                    </button>
-                  )
-                })}
-              </div>
+              <StoneTagInput
+                stones={stoneOptions}
+                value={stones}
+                onChange={setStones}
+                onCreateStone={createStone}
+              />
             </div>
 
             {/* Quantidade */}

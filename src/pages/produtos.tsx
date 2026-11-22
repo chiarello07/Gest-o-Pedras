@@ -11,13 +11,14 @@ import {
   LayoutGrid,
   Table as TableIcon,
 } from 'lucide-react'
-import type { Product, ProductCategory } from '@/types/database'
+import type { Product, ProductCategory, Stone } from '@/types/database'
 import { getProducts } from '@/services/products'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/context/AuthContext'
 import { formatCurrency, AnimatedCounter } from '@/components/AnimatedCounter'
 import ProductModal from '@/components/ProductModal'
-import { categoryLabels, categoryStyles, stoneLabels } from '@/lib/labels'
+import { categoryLabels, categoryStyles } from '@/lib/labels'
+import { useStones } from '@/hooks/useStones'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProductStoneTags } from '@/components/StoneTags'
@@ -25,6 +26,7 @@ import { ProductStoneTags } from '@/components/StoneTags'
 export default function Produtos() {
   const { role } = useAuth()
   const isAdmin = role === 'admin'
+  const { stones } = useStones()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -66,6 +68,13 @@ export default function Produtos() {
   const totalStockInvestment = useMemo(() => {
     return products.reduce((acc, p) => acc + (Number(p.quantity) || 0) * (Number(p.cost) || 0), 0)
   }, [products])
+
+  // Mapa id → Stone para exibir as tags de pedra nos cards/tabela
+  const stoneMap = useMemo(() => {
+    const map: Record<string, Stone> = {}
+    for (const s of stones) map[s.id] = s
+    return map
+  }, [stones])
 
   // Filtragem local
   const filteredProducts = useMemo(() => {
@@ -333,7 +342,7 @@ export default function Produtos() {
                           >
                             {categoryLabels[p.category] || p.category}
                           </span>
-                          <ProductStoneTags stones={p.stones} />
+                          <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
                         </div>
                       </td>
 
@@ -441,7 +450,7 @@ export default function Produtos() {
                     >
                       {categoryLabels[p.category] || p.category}
                     </span>
-                    <ProductStoneTags stones={p.stones} />
+                    <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
 
                     <div className="flex items-center gap-1.5">
                       {hasEncantamento && (

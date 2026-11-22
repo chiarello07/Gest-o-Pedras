@@ -12,7 +12,7 @@ import {
   Gem,
   Award,
 } from 'lucide-react'
-import type { Product, Movement, Sale } from '@/types/database'
+import type { Product, Movement, Sale, Stone } from '@/types/database'
 import { getDashboardData } from '@/services/dashboard'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/context/AuthContext'
@@ -21,11 +21,13 @@ import { FinancialChart } from '@/components/FinancialChart'
 import ProductModal from '@/components/ProductModal'
 import { categoryLabels, categoryStyles } from '@/lib/labels'
 import { ProductStoneTags } from '@/components/StoneTags'
+import { useStones } from '@/hooks/useStones'
 import { Button } from '@/components/ui/button'
 
 export default function Index() {
   const { role } = useAuth()
   const isAdmin = role === 'admin'
+  const { stones } = useStones()
   const [products, setProducts] = useState<Product[]>([])
   const [movements, setMovements] = useState<Movement[]>([])
   const [sales, setSales] = useState<Sale[]>([])
@@ -88,6 +90,13 @@ export default function Index() {
   const estimatedGrossProfit = useMemo(() => {
     return Math.max(potentialRevenue - totalStockCost, 0)
   }, [potentialRevenue, totalStockCost])
+
+  // Mapa id → Stone para as tags de pedra nos cards/tabela do dashboard
+  const stoneMap = useMemo(() => {
+    const map: Record<string, Stone> = {}
+    for (const s of stones) map[s.id] = s
+    return map
+  }, [stones])
 
   // 4. Caixa atual = soma(entradas) - soma(saidas) + vendas reais registradas
   const currentCash = useMemo(() => {
@@ -474,7 +483,7 @@ export default function Index() {
                       {p.description || 'Produto natural lapidado com alto rigor estético.'}
                     </p>
                     <div className="mt-2">
-                      <ProductStoneTags stones={p.stones} />
+                      <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
                     </div>
                   </div>
 
@@ -577,7 +586,7 @@ export default function Index() {
                           <p className="text-[11px] text-[#6B7A70] line-clamp-1">
                             {p.description || '—'}
                           </p>
-                          <ProductStoneTags stones={p.stones} />
+                          <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
                         </td>
 
                         <td className="py-3.5 px-3">
