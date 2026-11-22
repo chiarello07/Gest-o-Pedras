@@ -10,6 +10,7 @@ import Index from './pages/Index'
 import Produtos from './pages/produtos'
 import Vendas from './pages/vendas'
 import Financeiro from './pages/financeiro'
+import Relatorios from './pages/relatorios'
 import Configuracoes from './pages/configuracoes'
 
 // Páginas Públicas de Autenticação
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/produtos" element={<Produtos />} />
             <Route path="/vendas" element={<Vendas />} />
             <Route path="/financeiro" element={<Financeiro />} />
+            <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
 

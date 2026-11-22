@@ -5,6 +5,7 @@ import {
   Gem,
   ShoppingBag,
   CircleDollarSign,
+  FileBarChart2,
   Settings,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { to: '/produtos', label: 'Produtos', icon: Gem },
   { to: '/vendas', label: 'Vendas', icon: ShoppingBag },
   { to: '/financeiro', label: 'Financeiro', icon: CircleDollarSign },
+  { to: '/relatorios', label: 'Relatórios', icon: FileBarChart2, adminOnly: true },
   { to: '/configuracoes', label: 'Configurações', icon: Settings, adminOnly: true },
 ]
 
@@ -48,6 +50,7 @@ const routeTitles: Record<string, string> = {
   '/produtos': 'Gestão de Estoque',
   '/vendas': 'Registro de Vendas',
   '/financeiro': 'Controle Financeiro',
+  '/relatorios': 'Relatórios do Atelier',
   '/configuracoes': 'Configurações do Atelier',
 }
 
@@ -80,10 +83,13 @@ export default function Layout() {
     }
   }, [])
 
-  // Gestor não acessa a tela de Configurações: redireciona para o dashboard
+  // Gestor não acessa Configurações nem Relatórios: redireciona para o dashboard
   useEffect(() => {
     if (isLoading || !isValid) return
-    if (role !== 'admin' && location.pathname === '/configuracoes') {
+    if (
+      role !== 'admin' &&
+      (location.pathname === '/configuracoes' || location.pathname === '/relatorios')
+    ) {
       navigate('/', { replace: true })
     }
   }, [isLoading, isValid, role, location.pathname, navigate])
