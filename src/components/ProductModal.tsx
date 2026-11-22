@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { Sparkles, Trash2, AlertCircle } from 'lucide-react'
-import type { Product, ProductCategory, ProductUnit } from '@/types/database'
+import type { Product, ProductCategory, ProductStone, ProductUnit } from '@/types/database'
 import { createProduct, updateProduct, deleteProduct } from '@/services/products'
+import {
+  categoryLabels,
+  categoryStyles,
+  stoneLabels,
+  stoneOptions,
+  stoneStyles,
+} from '@/lib/labels'
 import {
   Dialog,
   DialogContent,
@@ -32,22 +39,7 @@ interface ProductModalProps {
   onSuccess?: () => void
 }
 
-export const categoryLabels: Record<ProductCategory, string> = {
-  ametista: 'Ametista',
-  quartzo: 'Quartzo',
-  decoracao: 'Decoração',
-  joia: 'Joia',
-  outros: 'Outros',
-}
-
-export const categoryStyles: Record<ProductCategory, { bg: string; text: string; border: string }> =
-  {
-    ametista: { bg: '#EFE9F7', text: '#6B4FA0', border: '#D8C7F0' },
-    quartzo: { bg: '#EFF3F0', text: '#3E7C4F', border: '#C7DBCF' },
-    decoracao: { bg: '#FBF3E4', text: '#A8861D', border: '#EED69E' },
-    joia: { bg: '#F7EBEA', text: '#B3452F', border: '#EBBBB3' },
-    outros: { bg: '#F0F2F1', text: '#55665C', border: '#D0D8D4' },
-  }
+export { categoryLabels, categoryStyles }
 
 export default function ProductModal({
   open,
@@ -66,7 +58,8 @@ export default function ProductModal({
   const [cost, setCost] = useState<string>('')
   const [price, setPrice] = useState<string>('')
   const [promoPrice, setPromoPrice] = useState<string>('')
-  const [category, setCategory] = useState<ProductCategory>('quartzo')
+  const [category, setCategory] = useState<ProductCategory | ''>('')
+  const [stones, setStones] = useState<ProductStone[]>([])
 
   const [saving, setSaving] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -86,7 +79,8 @@ export default function ProductModal({
       setPromoPrice(
         product.promo_price && product.promo_price > 0 ? String(product.promo_price) : '',
       )
-      setCategory(product.category || 'quartzo')
+      setCategory(product.category || '')
+      setStones(Array.isArray(product.stones) ? product.stones : [])
     } else {
       setName('')
       setDescription('')
@@ -95,7 +89,8 @@ export default function ProductModal({
       setCost('')
       setPrice('')
       setPromoPrice('')
-      setCategory('quartzo')
+      setCategory('')
+      setStones([])
     }
     setErrors({})
   }, [product, open])
@@ -123,6 +118,9 @@ export default function ProductModal({
     if (promoPrice !== '' && !isNaN(Number(promoPrice)) && Number(promoPrice) <= 0) {
       fieldErrors.promo_price = 'O valor promocional deve ser maior que zero.'
     }
+    if (!category) {
+      fieldErrors.category = 'Selecione a categoria do produto.'
+    }
 
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors)
@@ -140,7 +138,8 @@ export default function ProductModal({
         cost: Number(cost),
         price: Number(price),
         promo_price: promoPrice ? Number(promoPrice) : 0,
-        category,
+        category: category as ProductCategory,
+        stones,
       }
 
       if (isEditing && product) {
@@ -255,13 +254,19 @@ export default function ProductModal({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as ProductCategory)}
+                  required
                   className="w-full h-10 rounded-md border border-[#E8E4DA] bg-white px-3 text-sm text-[#1F2A24] focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
                 >
-                  <option value="ametista">Ametista</option>
-                  <option value="quartzo">Quartzo</option>
-                  <option value="decoracao">Decoração</option>
-                  <option value="joia">Joia</option>
-                  <option value="outros">Outros</option>
+                  <option value="" disabled>
+                    Selecione a categoria...
+                  </option>
+                  {(
+                    ['decoracao', 'joia', 'kit', 'acessorio', 'base', 'outros'] as ProductCategory[]
+                  ).map((value) => (
+                    <option key={value} value={value}>
+                      {categoryLabels[value]}
+                    </option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="text-xs text-[#B3452F] mt-1">{errors.category}</p>
@@ -281,6 +286,49 @@ export default function ProductModal({
                   <option value="peso">Peso (kg)</option>
                 </select>
                 {errors.unit && <p className="text-xs text-[#B3452F] mt-1">{errors.unit}</p>}
+              </div>
+            </div>
+
+            {/* Pedras e composição */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-[#1E3A2F]">Pedras e Composição</label>
+                <span className="text-[11px] text-[#8EA598] font-medium">
+                  Opcional — ex.: base, led ou sacola
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {stoneOptions.map((stone) => {
+                  const selected = stones.includes(stone)
+                  const style = stoneStyles[stone]
+                  return (
+                    <button
+                      key={stone}
+                      type="button"
+                      onClick={() =>
+                        setStones((prev) =>
+                          prev.includes(stone) ? prev.filter((s) => s !== stone) : [...prev, stone],
+                        )
+                      }
+                      style={
+                        selected
+                          ? {
+                              backgroundColor: style.bg,
+                              color: style.text,
+                              borderColor: style.border,
+                            }
+                          : undefined
+                      }
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${
+                        selected
+                          ? ''
+                          : 'bg-white text-[#6B7A70] border-[#E8E4DA] hover:border-[#C9A227] hover:text-[#1E3A2F]'
+                      }`}
+                    >
+                      {stoneLabels[stone]}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

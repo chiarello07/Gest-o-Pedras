@@ -1,5 +1,5 @@
 import pb from '@/lib/pocketbase/client'
-import type { Product, ProductCategory, ProductUnit } from '@/types/database'
+import type { Product, ProductCategory, ProductStone, ProductUnit } from '@/types/database'
 
 export interface CreateProductInput {
   name: string
@@ -10,6 +10,7 @@ export interface CreateProductInput {
   price: number
   promo_price?: number | null
   category: ProductCategory
+  stones?: ProductStone[]
 }
 
 export interface UpdateProductInput extends Partial<CreateProductInput> {}
@@ -37,6 +38,7 @@ export async function createProduct(data: CreateProductInput): Promise<Product> 
     cost: Number(data.cost) || 0,
     price: Number(data.price) || 0,
     category: data.category,
+    stones: data.stones ?? [],
   }
 
   if (

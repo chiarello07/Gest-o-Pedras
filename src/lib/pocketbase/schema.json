@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T23:12:16.267Z",
+  "generatedAt": "2026-11-22T23:33:38.954Z",
   "collections": [
     {
       "name": "users",
@@ -117,7 +117,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["ametista", "quartzo", "decoracao", "joia", "outros"]
+          "selectValues": ["decoracao", "joia", "kit", "acessorio", "base", "outros"]
         },
         {
           "name": "created",
@@ -139,6 +139,22 @@
           "required": false,
           "system": false,
           "selectValues": ["disponivel", "esgotado"]
+        },
+        {
+          "name": "stones",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "ametista",
+            "agata",
+            "pirita",
+            "selenita",
+            "cianita",
+            "quartzo",
+            "obsidiana",
+            "outras"
+          ]
         }
       ],
       "indexes": [

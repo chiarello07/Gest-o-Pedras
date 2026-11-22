@@ -1,7 +1,18 @@
 import type { RecordModel } from 'pocketbase'
 
-export type ProductCategory = 'ametista' | 'quartzo' | 'decoracao' | 'joia' | 'outros'
+export type ProductCategory = 'decoracao' | 'joia' | 'kit' | 'acessorio' | 'base' | 'outros'
 export type ProductUnit = 'unidade' | 'peso'
+
+/** Pedras que podem compor um produto (multi-select, opcional). */
+export type ProductStone =
+  | 'ametista'
+  | 'agata'
+  | 'pirita'
+  | 'selenita'
+  | 'cianita'
+  | 'quartzo'
+  | 'obsidiana'
+  | 'outras'
 
 export type ProductStatus = 'disponivel' | 'esgotado'
 
@@ -14,6 +25,8 @@ export interface Product extends RecordModel {
   price: number
   promo_price?: number
   category: ProductCategory
+  /** Pedras que compõem o produto (opcional, vazio para base/led/sacola etc.) */
+  stones?: ProductStone[]
   status?: ProductStatus
   created: string
   updated: string

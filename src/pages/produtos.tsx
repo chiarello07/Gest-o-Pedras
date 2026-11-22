@@ -16,9 +16,11 @@ import { getProducts } from '@/services/products'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/context/AuthContext'
 import { formatCurrency, AnimatedCounter } from '@/components/AnimatedCounter'
-import ProductModal, { categoryLabels, categoryStyles } from '@/components/ProductModal'
+import ProductModal from '@/components/ProductModal'
+import { categoryLabels, categoryStyles, stoneLabels } from '@/lib/labels'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ProductStoneTags } from '@/components/StoneTags'
 
 export default function Produtos() {
   const { role } = useAuth()
@@ -168,10 +170,11 @@ export default function Produtos() {
               className="h-10 rounded-lg border border-[#E8E4DA] bg-white px-3 text-xs sm:text-sm text-[#1F2A24] focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
             >
               <option value="todos">Todas as Categorias</option>
-              <option value="ametista">Ametistas</option>
-              <option value="quartzo">Quartzos</option>
               <option value="decoracao">Decoração</option>
               <option value="joia">Joias</option>
+              <option value="kit">Kits</option>
+              <option value="acessorio">Acessórios</option>
+              <option value="base">Bases</option>
               <option value="outros">Outros</option>
             </select>
 
@@ -319,16 +322,19 @@ export default function Produtos() {
                       </td>
 
                       <td className="py-3.5 px-3">
-                        <span
-                          style={{
-                            backgroundColor: catStyle.bg,
-                            color: catStyle.text,
-                            borderColor: catStyle.border,
-                          }}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold border inline-block"
-                        >
-                          {categoryLabels[p.category] || p.category}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span
+                            style={{
+                              backgroundColor: catStyle.bg,
+                              color: catStyle.text,
+                              borderColor: catStyle.border,
+                            }}
+                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold border inline-block"
+                          >
+                            {categoryLabels[p.category] || p.category}
+                          </span>
+                          <ProductStoneTags stones={p.stones} />
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-3 text-right font-medium text-[#1E3A2F]">
@@ -435,6 +441,7 @@ export default function Produtos() {
                     >
                       {categoryLabels[p.category] || p.category}
                     </span>
+                    <ProductStoneTags stones={p.stones} />
 
                     <div className="flex items-center gap-1.5">
                       {hasEncantamento && (

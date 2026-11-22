@@ -18,7 +18,9 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/context/AuthContext'
 import { AnimatedCounter, formatCurrency } from '@/components/AnimatedCounter'
 import { FinancialChart } from '@/components/FinancialChart'
-import ProductModal, { categoryLabels, categoryStyles } from '@/components/ProductModal'
+import ProductModal from '@/components/ProductModal'
+import { categoryLabels, categoryStyles } from '@/lib/labels'
+import { ProductStoneTags } from '@/components/StoneTags'
 import { Button } from '@/components/ui/button'
 
 export default function Index() {
@@ -471,6 +473,9 @@ export default function Index() {
                     <p className="text-xs text-[#6B7A70] line-clamp-2 mt-1 leading-relaxed">
                       {p.description || 'Produto natural lapidado com alto rigor estético.'}
                     </p>
+                    <div className="mt-2">
+                      <ProductStoneTags stones={p.stones} />
+                    </div>
                   </div>
 
                   {/* Quantity & Pricing Block */}
@@ -572,6 +577,7 @@ export default function Index() {
                           <p className="text-[11px] text-[#6B7A70] line-clamp-1">
                             {p.description || '—'}
                           </p>
+                          <ProductStoneTags stones={p.stones} />
                         </td>
 
                         <td className="py-3.5 px-3">
