@@ -147,11 +147,23 @@ export default function Index() {
     })
 
     return best
-  }, [products])
+  }, [products, productsIndex])
 
   const totalItemsCount = useMemo(() => {
-    return products.reduce((acc, p) => acc + (Number(p.quantity) || 0), 0)
+    return products.reduce(
+      (acc, p) => (p.product_type === 'kit' ? acc : acc + (Number(p.quantity) || 0)),
+      0,
+    )
   }, [products])
+
+  /** Estoque exibido no card/tabela: kit = derivado dos componentes, demais = quantity. */
+  const stockLabelOf = (p: Product): string => {
+    if (p.product_type === 'kit') {
+      const stock = availableStock(p, productsIndex)
+      return Number.isFinite(stock) ? `${stock} kit(s)` : 'Conforme componentes'
+    }
+    return `${p.quantity} ${p.unit === 'peso' ? 'kg' : 'un.'}`
+  }
 
   const handleOpenCreate = () => {
     setEditingProduct(null)
@@ -436,7 +448,7 @@ export default function Index() {
           /* CARD VIEW: Responsive Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {products.map((p) => {
-              const isAvailable = (Number(p.quantity) || 0) > 0
+              const isAvailable = availableStock(p, productsIndex) > 0
               const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
               const effectivePrice = hasEncantamento ? Number(p.promo_price) : Number(p.price) || 0
               const cost = Number(p.cost) || 0
@@ -468,6 +480,7 @@ export default function Index() {
                       </span>
 
                       <div className="flex items-center gap-1.5">
+                        {p.product_type === 'kit' && <KitBadge />}
                         {hasEncantamento && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF3E0] text-[#8E7118] border border-[#C9A227]/40 shadow-xs">
                             <Sparkles className="h-3 w-3 text-[#C9A227]" />
@@ -508,10 +521,12 @@ export default function Index() {
                   <div className="mt-5 pt-3.5 border-t border-[#E8E4DA]/80 space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[#6B7A70]">Quantidade em Estoque:</span>
-                      <span className="font-bold text-[#1E3A2F]">
-                        {p.quantity} {p.unit === 'peso' ? 'kg' : 'un.'}
-                      </span>
+                      <span className="font-bold text-[#1E3A2F]">{stockLabelOf(p)}</span>
                     </div>
+
+                    {p.product_type === 'kit' && (
+                      <KitComponentsSummary product={p} productsIndex={productsIndex} />
+                    )}
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-[#6B7A70]">Custo:</span>
@@ -577,7 +592,7 @@ export default function Index() {
                 </thead>
                 <tbody className="divide-y divide-[#E8E4DA]">
                   {products.map((p) => {
-                    const isAvailable = (Number(p.quantity) || 0) > 0
+                    const isAvailable = availableStock(p, productsIndex) > 0
                     const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
                     const effectivePrice = hasEncantamento
                       ? Number(p.promo_price)
@@ -607,20 +622,26 @@ export default function Index() {
                         </td>
 
                         <td className="py-3.5 px-3">
-                          <span
-                            style={{
-                              backgroundColor: catStyle.bg,
-                              color: catStyle.text,
-                              borderColor: catStyle.border,
-                            }}
-                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold border inline-block"
-                          >
-                            {categoryLabels[p.category] || p.category}
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span
+                              style={{
+                                backgroundColor: catStyle.bg,
+                                color: catStyle.text,
+                                borderColor: catStyle.border,
+                              }}
+                              className="px-2 py-0.5 rounded-full text-[10px] font-semibold border inline-block"
+                            >
+                              {categoryLabels[p.category] || p.category}
+                            </span>
+                            {p.product_type === 'kit' && <KitBadge />}
+                          </div>
                         </td>
 
-                        <td className="py-3.5 px-3 text-right font-medium text-[#1E3A2F]">
-                          {p.quantity} {p.unit === 'peso' ? 'kg' : 'un.'}
+                        <td className="py-3.5 px-3 text-right">
+                          <div className="font-medium text-[#1E3A2F]">{stockLabelOf(p)}</div>
+                          {p.product_type === 'kit' && (
+                            <KitComponentsSummary product={p} productsIndex={productsIndex} />
+                          )}
                         </td>
 
                         <td className="py-3.5 px-3 text-right text-[#6B7A70] font-mono">

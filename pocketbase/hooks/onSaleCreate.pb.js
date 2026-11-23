@@ -85,25 +85,30 @@ onRecordCreate((e) => {
           available = Infinity
         } else {
           const needed = {}
+          const comps = {}
           componentIds.forEach(function (id) {
             needed[id] = (needed[id] || 0) + 1
           })
           available = Infinity
           for (const id in needed) {
-            let comp
             try {
-              comp = tx.findRecordById('products', id)
+              comps[id] = tx.findRecordById('products', id)
             } catch (_) {
               continue // componente removido: ignora na validação
             }
-            const compAvailable = Math.floor(comp.getFloat('quantity') / needed[id])
+            const compAvailable = Math.floor(comps[id].getFloat('quantity') / needed[id])
             if (compAvailable < available) available = compAvailable
           }
-        }
-        if (quantity > available) {
-          throw new BadRequestError(
-            'Estoque insuficiente de componentes para o kit "' + product.getString('name') + '".',
-          )
+          if (quantity > available) {
+            throw new BadRequestError(
+              'Estoque insuficiente de componentes para o kit "' + product.getString('name') + '".',
+            )
+          }
+          // A baixa é sempre nos COMPONENTES: 1 unidade por ocorrência no kit,
+          // multiplicada pela quantidade de kits vendidos.
+          for (const id in comps) {
+            addDecrement(comps[id], needed[id] * quantity)
+          }
         }
       } else {
         available = product.getFloat('quantity')

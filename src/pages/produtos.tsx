@@ -62,11 +62,18 @@ export default function Produtos() {
     fetchData()
   })
 
+  // Mapa id → Product para exibir os componentes dos kits e calcular o estoque
+  const productsIndex = useMemo(() => {
+    const map: Record<string, Product> = {}
+    for (const p of products) map[p.id] = p
+    return map
+  }, [products])
+
   // Mini-KPIs no topo
   const totalProducts = products.length
   const outOfStockCount = useMemo(() => {
-    return products.filter((p) => availableStock(p) <= 0).length
-  }, [products])
+    return products.filter((p) => availableStock(p, productsIndex) <= 0).length
+  }, [products, productsIndex])
 
   const totalStockInvestment = useMemo(() => {
     return products.reduce((acc, p) => acc + (Number(p.quantity) || 0) * (Number(p.cost) || 0), 0)
@@ -78,13 +85,6 @@ export default function Produtos() {
     for (const s of stones) map[s.id] = s
     return map
   }, [stones])
-
-  // Mapa id → Product para exibir os componentes dos kits
-  const productsIndex = useMemo(() => {
-    const map: Record<string, Product> = {}
-    for (const p of products) map[p.id] = p
-    return map
-  }, [products])
 
   // Filtragem local
   const filteredProducts = useMemo(() => {
@@ -99,7 +99,7 @@ export default function Produtos() {
       const matchesCategory = categoryFilter === 'todos' || p.category === categoryFilter
 
       // Status
-      const qty = availableStock(p)
+      const qty = availableStock(p, productsIndex)
       const matchesStatus =
         statusFilter === 'todos' ||
         (statusFilter === 'disponivel' && qty > 0) ||
@@ -107,7 +107,7 @@ export default function Produtos() {
 
       return matchesSearch && matchesCategory && matchesStatus
     })
-  }, [products, search, categoryFilter, statusFilter])
+  }, [products, productsIndex, search, categoryFilter, statusFilter])
 
   const handleOpenCreate = () => {
     setEditingProduct(null)
@@ -312,7 +312,7 @@ export default function Produtos() {
               </thead>
               <tbody className="divide-y divide-[#E8E4DA]">
                 {filteredProducts.map((p) => {
-                  const isAvailable = availableStock(p) > 0
+                  const isAvailable = availableStock(p, productsIndex) > 0
                   const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
                   const effectivePrice = hasEncantamento
                     ? Number(p.promo_price)
@@ -443,7 +443,7 @@ export default function Produtos() {
         /* CARDS VIEW */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProducts.map((p) => {
-            const isAvailable = availableStock(p) > 0
+            const isAvailable = availableStock(p, productsIndex) > 0
             const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
             const effectivePrice = hasEncantamento ? Number(p.promo_price) : Number(p.price) || 0
             const cost = Number(p.cost) || 0

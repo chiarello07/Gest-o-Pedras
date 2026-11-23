@@ -3,7 +3,7 @@ import { Search, ShoppingBag, Trash2, Plus, AlertCircle, Package } from 'lucide-
 import type { Product, SaleChannel } from '@/types/database'
 import { channelLabels } from '@/lib/labels'
 import { formatCurrency } from '@/components/AnimatedCounter'
-import { getProducts, getKitAvailableQuantity } from '@/services/products'
+import { getProducts, availableStock } from '@/services/products'
 import { createSale, type SaleItemInput } from '@/services/sales'
 import { KitBadge } from '@/components/KitBadge'
 import {
@@ -74,18 +74,23 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
     }
   }, [open])
 
-  // Estoque atualizado em tempo real: reflete nos itens já no carrinho
+  // Mapa id → Product para calcular o estoque de kits a partir dos componentes
+  const productsIndex = useMemo(() => {
+    const map: Record<string, Product> = {}
+    for (const p of products) map[p.id] = p
+    return map
+  }, [products])
+
+  // Estoque atualizado em tempo real: reflete nos itens já no carrinho.
+  // Kit = mínimo entre (estoque do componente ÷ ocorrências) — via availableStock.
   const stockOf = (productId: string): number => {
     const fresh = products.find((p) => p.id === productId)
     if (fresh) {
-      if (fresh.product_type === 'kit') {
-        const avail = getKitAvailableQuantity(fresh, fresh.expand?.components || [])
-        return avail === null ? Infinity : avail
-      }
-      return Math.max(Number(fresh.quantity) || 0, 0)
+      const stock = availableStock(fresh, productsIndex)
+      return Number.isFinite(stock) ? Math.max(stock, 0) : Infinity
     }
     const inCart = cart.find((c) => c.product.id === productId)
-    return inCart ? Math.max(Number(inCart.product.quantity) || 0, 0) : 0
+    return inCart ? availableStock(inCart.product, productsIndex) : 0
   }
 
   const filteredProducts = useMemo(() => {
