@@ -14,6 +14,9 @@ export interface Stone extends RecordModel {
 
 export type ProductStatus = 'disponivel' | 'esgotado'
 
+/** Tipo estrutural do item: produto individual ou kit de componentes. */
+export type ProductType = 'individual' | 'kit'
+
 export interface Product extends RecordModel {
   name: string
   description?: string
@@ -25,6 +28,10 @@ export interface Product extends RecordModel {
   category: ProductCategory
   /** Pedras que compõem o produto (relation com a coleção `stones`) */
   stones?: string[]
+  /** Tipo estrutural: 'individual' (padrão) ou 'kit' (composto por `components`) */
+  product_type?: ProductType
+  /** Produtos componentes do kit (relation com a própria coleção `products`) */
+  components?: string[]
   status?: ProductStatus
   created: string
   updated: string

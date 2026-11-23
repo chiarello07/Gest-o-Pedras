@@ -3,8 +3,9 @@ import { Search, ShoppingBag, Trash2, Plus, AlertCircle, Package } from 'lucide-
 import type { Product, SaleChannel } from '@/types/database'
 import { channelLabels } from '@/lib/labels'
 import { formatCurrency } from '@/components/AnimatedCounter'
-import { getProducts } from '@/services/products'
+import { getProducts, getKitAvailableQuantity } from '@/services/products'
 import { createSale, type SaleItemInput } from '@/services/sales'
+import { KitBadge } from '@/components/KitBadge'
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,8 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
   useEffect(() => {
     if (!open) return
     setLoadingProducts(true)
-    getProducts({ sort: 'name' })
+    // expand componentes: estoque do kit é calculado a partir dos componentes
+    getProducts({ sort: 'name', expand: 'components' })
       .then(setProducts)
       .catch(() => {
         toast({
@@ -75,7 +77,13 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
   // Estoque atualizado em tempo real: reflete nos itens já no carrinho
   const stockOf = (productId: string): number => {
     const fresh = products.find((p) => p.id === productId)
-    if (fresh) return Math.max(Number(fresh.quantity) || 0, 0)
+    if (fresh) {
+      if (fresh.product_type === 'kit') {
+        const avail = getKitAvailableQuantity(fresh, fresh.expand?.components || [])
+        return avail === null ? Infinity : avail
+      }
+      return Math.max(Number(fresh.quantity) || 0, 0)
+    }
     const inCart = cart.find((c) => c.product.id === productId)
     return inCart ? Math.max(Number(inCart.product.quantity) || 0, 0) : 0
   }
@@ -271,9 +279,12 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
                       }`}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
-                          {p.name}
-                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
+                            {p.name}
+                          </p>
+                          {p.product_type === 'kit' && <KitBadge />}
+                        </div>
                         <p className="text-[11px] text-[#6B7A70]">
                           {hasPromo ? (
                             <>
@@ -291,7 +302,11 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
                           <span className={outOfStock ? 'text-[#B3452F] font-semibold' : ''}>
                             {outOfStock
                               ? 'Esgotado'
-                              : `${stock} ${p.unit === 'peso' ? 'kg' : 'un.'} em estoque`}
+                              : p.product_type === 'kit'
+                                ? Number.isFinite(stock)
+                                  ? `${stock} kits disponíveis (conforme componentes)`
+                                  : 'Sem limite próprio de estoque'
+                                : `${stock} ${p.unit === 'peso' ? 'kg' : 'un.'} em estoque`}
                           </span>
                         </p>
                       </div>
@@ -325,11 +340,19 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
                 {cart.map((c) => (
                   <div key={c.product.id} className="p-3 flex items-center gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
-                        {c.product.name}
-                      </p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
+                          {c.product.name}
+                        </p>
+                        {c.product.product_type === 'kit' && <KitBadge />}
+                      </div>
                       <p className="text-[11px] text-[#6B7A70] font-mono">
-                        {formatCurrency(c.unitPrice)} / {c.product.unit === 'peso' ? 'kg' : 'un.'}
+                        {formatCurrency(c.unitPrice)} /{' '}
+                        {c.product.product_type === 'kit'
+                          ? 'kit'
+                          : c.product.unit === 'peso'
+                            ? 'kg'
+                            : 'un.'}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -343,7 +366,9 @@ export default function NewSaleModal({ open, onOpenChange, onSuccess }: NewSaleM
                       <input
                         type="number"
                         min={1}
-                        max={stockOf(c.product.id)}
+                        max={
+                          Number.isFinite(stockOf(c.product.id)) ? stockOf(c.product.id) : undefined
+                        }
                         value={c.quantity}
                         onChange={(e) => updateQuantity(c.product.id, Number(e.target.value) || 0)}
                         className="w-14 h-7 text-center text-xs rounded-md border border-[#E8E4DA] focus:outline-none focus:ring-1 focus:ring-[#C9A227] tabular-nums"

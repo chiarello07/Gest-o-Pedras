@@ -19,6 +19,9 @@ import { formatCurrency, AnimatedCounter } from '@/components/AnimatedCounter'
 import ProductModal from '@/components/ProductModal'
 import { categoryLabels, categoryStyles } from '@/lib/labels'
 import { useStones } from '@/hooks/useStones'
+import { availableStock } from '@/services/products'
+import { KitBadge } from '@/components/KitBadge'
+import KitComponentsSummary from '@/components/KitComponentsSummary'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProductStoneTags } from '@/components/StoneTags'
@@ -62,7 +65,7 @@ export default function Produtos() {
   // Mini-KPIs no topo
   const totalProducts = products.length
   const outOfStockCount = useMemo(() => {
-    return products.filter((p) => (Number(p.quantity) || 0) <= 0).length
+    return products.filter((p) => availableStock(p) <= 0).length
   }, [products])
 
   const totalStockInvestment = useMemo(() => {
@@ -75,6 +78,13 @@ export default function Produtos() {
     for (const s of stones) map[s.id] = s
     return map
   }, [stones])
+
+  // Mapa id → Product para exibir os componentes dos kits
+  const productsIndex = useMemo(() => {
+    const map: Record<string, Product> = {}
+    for (const p of products) map[p.id] = p
+    return map
+  }, [products])
 
   // Filtragem local
   const filteredProducts = useMemo(() => {
@@ -89,7 +99,7 @@ export default function Produtos() {
       const matchesCategory = categoryFilter === 'todos' || p.category === categoryFilter
 
       // Status
-      const qty = Number(p.quantity) || 0
+      const qty = availableStock(p)
       const matchesStatus =
         statusFilter === 'todos' ||
         (statusFilter === 'disponivel' && qty > 0) ||
@@ -302,7 +312,7 @@ export default function Produtos() {
               </thead>
               <tbody className="divide-y divide-[#E8E4DA]">
                 {filteredProducts.map((p) => {
-                  const isAvailable = (Number(p.quantity) || 0) > 0
+                  const isAvailable = availableStock(p) > 0
                   const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
                   const effectivePrice = hasEncantamento
                     ? Number(p.promo_price)
@@ -342,12 +352,22 @@ export default function Produtos() {
                           >
                             {categoryLabels[p.category] || p.category}
                           </span>
-                          <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {p.product_type === 'kit' && <KitBadge />}
+                            <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
+                          </div>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-3 text-right font-medium text-[#1E3A2F]">
-                        {p.quantity} {p.unit === 'peso' ? 'kg' : 'un.'}
+                      <td className="py-3.5 px-3 text-right">
+                        <div className="font-medium text-[#1E3A2F]">
+                          {p.product_type === 'kit'
+                            ? '—'
+                            : `${p.quantity} ${p.unit === 'peso' ? 'kg' : 'un.'}`}
+                        </div>
+                        {p.product_type === 'kit' && (
+                          <KitComponentsSummary product={p} productsIndex={productsIndex} />
+                        )}
                       </td>
 
                       <td className="py-3.5 px-3 text-right text-[#6B7A70] font-mono">
@@ -423,7 +443,7 @@ export default function Produtos() {
         /* CARDS VIEW */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredProducts.map((p) => {
-            const isAvailable = (Number(p.quantity) || 0) > 0
+            const isAvailable = availableStock(p) > 0
             const hasEncantamento = Boolean(p.promo_price && Number(p.promo_price) > 0)
             const effectivePrice = hasEncantamento ? Number(p.promo_price) : Number(p.price) || 0
             const cost = Number(p.cost) || 0
@@ -450,7 +470,10 @@ export default function Produtos() {
                     >
                       {categoryLabels[p.category] || p.category}
                     </span>
-                    <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {p.product_type === 'kit' && <KitBadge />}
+                      <ProductStoneTags stones={p.stones} stonesIndex={stoneMap} />
+                    </div>
 
                     <div className="flex items-center gap-1.5">
                       {hasEncantamento && (
@@ -489,9 +512,14 @@ export default function Produtos() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#6B7A70]">Quantidade em Estoque:</span>
                     <span className="font-bold text-[#1E3A2F]">
-                      {p.quantity} {p.unit === 'peso' ? 'kg' : 'un.'}
+                      {p.product_type === 'kit'
+                        ? '—'
+                        : `${p.quantity} ${p.unit === 'peso' ? 'kg' : 'un.'}`}
                     </span>
                   </div>
+                  {p.product_type === 'kit' && (
+                    <KitComponentsSummary product={p} productsIndex={productsIndex} />
+                  )}
 
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#6B7A70]">Custo:</span>

@@ -9,6 +9,14 @@
  *   4. decrementa a `quantity` de cada produto em `products` (floor 0),
  *   5. recalcula o `total` da venda a partir dos itens.
  *
+ * KITS (product_type = 'kit'):
+ *   - o kit não tem estoque próprio (quantity fica em 0); o estoque disponível
+ *     dele = mínimo entre (estoque do componente ÷ unidades do componente no kit).
+ *   - ao vender 1 kit, cada COMPONENTE tem sua quantity baixada (1 unidade por
+ *     ocorrência do componente no kit); a quantity do próprio kit não é baixada.
+ *   - sale_items registra o item como o kit (product = id do kit, unit_price =
+ *     preço próprio do kit), mantendo a consistência dos relatórios/financeiro.
+ *
  * Vendas legadas (item único via campo `product`) continuam funcionando: se
  * `items` não vier, o hook não interfere (o client grava product/quantity/total direto).
  */
@@ -34,6 +42,17 @@ onRecordCreate((e) => {
   const prepared = []
 
   app.runInTransaction((tx) => {
+    // Baixas de estoque agregadas por produto: { id: { record, qty } }
+    const decQty = {}
+
+    function addDecrement(record, qty) {
+      const id = record.id
+      if (!decQty[id]) {
+        decQty[id] = { record, qty: 0 }
+      }
+      decQty[id].qty += qty
+    }
+
     for (const item of parsed) {
       const productId = item && item.product ? String(item.product) : ''
       const quantity = Number(item && item.quantity) || 0
@@ -53,9 +72,47 @@ onRecordCreate((e) => {
       const expectedPrice = promo > 0 ? promo : product.getFloat('price')
       const unitPrice = Number(item.unit_price) > 0 ? Number(item.unit_price) : expectedPrice
 
-      const available = product.getFloat('quantity')
-      if (quantity > available) {
-        throw new BadRequestError('Estoque insuficiente para "' + product.getString('name') + '".')
+      const isKit = product.getString('product_type') === 'kit'
+      let available
+
+      if (isKit) {
+        // Estoque do kit = mínimo entre (estoque do componente ÷ ocorrências)
+        const componentIds = product.getStringSlice('components').filter(function (id) {
+          return id && id !== product.id
+        })
+        if (componentIds.length === 0) {
+          // Kit sem componentes vinculados: sem estoque controlado, vende livre
+          available = Infinity
+        } else {
+          const needed = {}
+          componentIds.forEach(function (id) {
+            needed[id] = (needed[id] || 0) + 1
+          })
+          available = Infinity
+          for (const id in needed) {
+            let comp
+            try {
+              comp = tx.findRecordById('products', id)
+            } catch (_) {
+              continue // componente removido: ignora na validação
+            }
+            const compAvailable = Math.floor(comp.getFloat('quantity') / needed[id])
+            if (compAvailable < available) available = compAvailable
+          }
+        }
+        if (quantity > available) {
+          throw new BadRequestError(
+            'Estoque insuficiente de componentes para o kit "' + product.getString('name') + '".',
+          )
+        }
+      } else {
+        available = product.getFloat('quantity')
+        if (quantity > available) {
+          throw new BadRequestError(
+            'Estoque insuficiente para "' + product.getString('name') + '".',
+          )
+        }
+        addDecrement(product, quantity)
       }
 
       const subtotal = unitPrice * quantity
@@ -63,7 +120,7 @@ onRecordCreate((e) => {
       prepared.push({ product, quantity, unitPrice, subtotal })
     }
 
-    // Cria os itens e decrementa o estoque atomicamente
+    // Cria os itens; estoque só é baixado dos componentes (agregado por produto)
     for (const p of prepared) {
       const saleItem = new Record(saleItemsCol)
       saleItem.set('sale', e.record.id)
@@ -72,10 +129,13 @@ onRecordCreate((e) => {
       saleItem.set('unit_price', p.unitPrice)
       saleItem.set('subtotal', p.subtotal)
       tx.save(saleItem)
+    }
 
-      const newQty = Math.max(p.product.getFloat('quantity') - p.quantity, 0)
-      p.product.set('quantity', newQty)
-      tx.save(p.product)
+    for (const id in decQty) {
+      const entry = decQty[id]
+      const newQty = Math.max(entry.record.getFloat('quantity') - entry.qty, 0)
+      entry.record.set('quantity', newQty)
+      tx.save(entry.record)
     }
 
     // Total recalculado a partir dos itens

@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { Sparkles, Trash2, AlertCircle } from 'lucide-react'
-import type { Product, ProductCategory, ProductUnit } from '@/types/database'
-import { createProduct, updateProduct, deleteProduct } from '@/services/products'
+import React, { useState, useEffect, useMemo } from 'react'
+import { PackageOpen, Sparkles, Trash2, AlertCircle } from 'lucide-react'
+import type { Product, ProductCategory, ProductType, ProductUnit } from '@/types/database'
+import { createProduct, updateProduct, deleteProduct, validateKit } from '@/services/products'
 import { categoryLabels, categoryStyles } from '@/lib/labels'
 import { useStones } from '@/hooks/useStones'
+import { getProducts } from '@/services/products'
+import { KitBadge } from '@/components/KitBadge'
 import StoneTagInput from '@/components/StoneTagInput'
+import KitComponentsInput from '@/components/KitComponentsInput'
 import {
   Dialog,
   DialogContent,
@@ -57,6 +60,9 @@ export default function ProductModal({
   const [promoPrice, setPromoPrice] = useState<string>('')
   const [category, setCategory] = useState<ProductCategory | ''>('')
   const [stones, setStones] = useState<string[]>([])
+  const [productType, setProductType] = useState<ProductType>('individual')
+  const [components, setComponents] = useState<string[]>([])
+  const [allProducts, setAllProducts] = useState<Product[]>([])
 
   const [saving, setSaving] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -64,6 +70,14 @@ export default function ProductModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const isEditing = Boolean(product)
+
+  // Lista de produtos cadastrados (opções de componente do kit)
+  useEffect(() => {
+    if (!open) return
+    getProducts({ sort: 'name' })
+      .then(setAllProducts)
+      .catch(() => setAllProducts([]))
+  }, [open])
 
   useEffect(() => {
     if (product) {
@@ -78,6 +92,8 @@ export default function ProductModal({
       )
       setCategory(product.category || '')
       setStones(Array.isArray(product.stones) ? product.stones : [])
+      setProductType(product.product_type === 'kit' ? 'kit' : 'individual')
+      setComponents(Array.isArray(product.components) ? product.components : [])
     } else {
       setName('')
       setDescription('')
@@ -88,9 +104,13 @@ export default function ProductModal({
       setPromoPrice('')
       setCategory('')
       setStones([])
+      setProductType('individual')
+      setComponents([])
     }
     setErrors({})
   }, [product, open])
+
+  const isKit = productType === 'kit'
 
   // Cálculo da margem estimada ao digitar
   const numCost = parseFloat(cost) || 0
@@ -119,6 +139,9 @@ export default function ProductModal({
       fieldErrors.category = 'Selecione a categoria do produto.'
     }
 
+    const kitError = validateKit(productType, components, product?.id)
+    if (kitError) fieldErrors.components = kitError
+
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors)
       return
@@ -137,6 +160,8 @@ export default function ProductModal({
         promo_price: promoPrice ? Number(promoPrice) : 0,
         category: category as ProductCategory,
         stones,
+        product_type: productType,
+        components: isKit ? components : [],
       }
 
       if (isEditing && product) {
@@ -302,30 +327,99 @@ export default function ProductModal({
               />
             </div>
 
-            {/* Quantidade */}
+            {/* Tipo do produto */}
             <div>
               <label className="block text-xs font-semibold text-[#1E3A2F] mb-1">
-                Quantidade em Estoque {unit === 'peso' ? '(kg)' : '(unidades)'}{' '}
-                <span className="text-[#B3452F]">*</span>
+                Tipo do Produto <span className="text-[#B3452F]">*</span>
               </label>
-              <Input
-                type="number"
-                step={unit === 'peso' ? '0.1' : '1'}
-                min="0"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="0"
-                required
-                className="h-10 border-[#E8E4DA] focus-visible:ring-[#C9A227]"
-              />
-              {errors.quantity && <p className="text-xs text-[#B3452F] mt-1">{errors.quantity}</p>}
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { value: 'individual', label: 'Individual', hint: 'Peça única' },
+                    { value: 'kit', label: 'Kit', hint: 'Combo de produtos' },
+                  ] as { value: ProductType; label: string; hint: string }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setProductType(opt.value)}
+                    className={`h-10 rounded-lg border text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
+                      productType === opt.value
+                        ? 'bg-[#1E3A2F] text-white border-[#1E3A2F] shadow'
+                        : 'bg-white text-[#6B7A70] border-[#E8E4DA] hover:border-[#C9A227]/60'
+                    }`}
+                  >
+                    {opt.label === 'Kit' && <PackageOpen className="h-3.5 w-3.5" />}
+                    <span>{opt.label}</span>
+                    <span
+                      className={productType === opt.value ? 'text-white/70' : 'text-[#8EA598]'}
+                    >
+                      · {opt.hint}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {errors.product_type && (
+                <p className="text-xs text-[#B3452F] mt-1">{errors.product_type}</p>
+              )}
             </div>
 
-            {/* Custo e Preço de Venda */}
+            {/* Componentes do kit */}
+            {isKit && (
+              <div className="rounded-xl border border-[#3E7C4F]/30 bg-[#EFF3F0]/40 p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#3E7C4F]">
+                    <PackageOpen className="h-4 w-4" />
+                    <span>Componentes do Kit</span>
+                  </div>
+                  <span className="text-[11px] text-[#6B7A70] font-medium">
+                    Mínimo de 2 produtos
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#6B7A70] leading-snug">
+                  Ao vender o kit, a quantidade de cada componente é baixada automaticamente do
+                  estoque. O kit em si não tem estoque próprio.
+                </p>
+                <KitComponentsInput
+                  products={allProducts}
+                  value={components}
+                  onChange={(ids) => setComponents(ids)}
+                  selfId={product?.id}
+                  editingProduct={product || null}
+                />
+                {errors.components && <p className="text-xs text-[#B3452F]">{errors.components}</p>}
+              </div>
+            )}
+
+            {/* Quantidade */}
+            {!isKit && (
+              <div>
+                <label className="block text-xs font-semibold text-[#1E3A2F] mb-1">
+                  Quantidade em Estoque {unit === 'peso' ? '(kg)' : '(unidades)'}{' '}
+                  <span className="text-[#B3452F]">*</span>
+                </label>
+                <Input
+                  type="number"
+                  step={unit === 'peso' ? '0.1' : '1'}
+                  min="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="0"
+                  required
+                  className="h-10 border-[#E8E4DA] focus-visible:ring-[#C9A227]"
+                />
+                {errors.quantity && (
+                  <p className="text-xs text-[#B3452F] mt-1">{errors.quantity}</p>
+                )}
+              </div>
+            )}
+
+            {/* Custo e Preço de Venda — para kit, preço próprio do combo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-[#1E3A2F] mb-1">
-                  Valor de Custo (R$) <span className="text-[#B3452F]">*</span>
+                  {isKit ? 'Custo do Kit (R$)' : 'Valor de Custo (R$)'}{' '}
+                  <span className="text-[#B3452F]">*</span>
                 </label>
                 <Input
                   type="number"
@@ -342,7 +436,8 @@ export default function ProductModal({
 
               <div>
                 <label className="block text-xs font-semibold text-[#1E3A2F] mb-1">
-                  Valor de Venda Regular (R$) <span className="text-[#B3452F]">*</span>
+                  {isKit ? 'Preço do Kit (R$)' : 'Valor de Venda Regular (R$)'}{' '}
+                  <span className="text-[#B3452F]">*</span>
                 </label>
                 <Input
                   type="number"
@@ -383,6 +478,14 @@ export default function ProductModal({
               {errors.promo_price && <p className="text-xs text-[#B3452F]">{errors.promo_price}</p>}
             </div>
 
+            {/* Aviso de preço livre do kit */}
+            {isKit && (
+              <p className="text-[11px] text-[#8E7118] leading-snug">
+                O preço do kit pode ser diferente da soma dos componentes — defina livremente o
+                valor do combo.
+              </p>
+            )}
+
             {/* Prévia da Margem */}
             {numPrice > 0 && (
               <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#FAF8F3] border border-[#E8E4DA] text-xs">
@@ -410,7 +513,11 @@ export default function ProductModal({
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Detalhes sobre a gema, procedência, lapidação ou utilidade energética..."
+                placeholder={
+                  isKit
+                    ? 'Descreva o que vem no kit (ex.: base, led, pedras escolhidas)...'
+                    : 'Detalhes sobre a gema, procedência, lapidação ou utilidade energética...'
+                }
                 className="border-[#E8E4DA] focus-visible:ring-[#C9A227] text-sm"
               />
               {errors.description && (

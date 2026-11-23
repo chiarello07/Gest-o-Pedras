@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { AnimatedCounter, formatCurrency } from '@/components/AnimatedCounter'
 import NewSaleModal from '@/components/NewSaleModal'
+import { KitBadge } from '@/components/KitBadge'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getSales, getSaleItems } from '@/services/sales'
 import { channelLabels } from '@/lib/labels'
@@ -75,7 +76,14 @@ export default function Vendas() {
   const [modalOpen, setModalOpen] = useState(false)
   const [detailSale, setDetailSale] = useState<Sale | null>(null)
   const [detailItems, setDetailItems] = useState<
-    { id: string; name: string; quantity: number; unitPrice: number; subtotal: number }[]
+    {
+      id: string
+      name: string
+      quantity: number
+      unitPrice: number
+      subtotal: number
+      isKit: boolean
+    }[]
   >([])
   const [detailLoading, setDetailLoading] = useState(false)
 
@@ -163,6 +171,7 @@ export default function Vendas() {
             quantity: Number(sale.quantity) || 1,
             unitPrice: (Number(sale.total) || 0) / (Number(sale.quantity) || 1),
             subtotal: Number(sale.total) || 0,
+            isKit: rec.product_type === 'kit',
           },
         ])
       } else {
@@ -174,6 +183,7 @@ export default function Vendas() {
             quantity: Number(i.quantity) || 0,
             unitPrice: Number(i.unit_price) || 0,
             subtotal: Number(i.subtotal) || 0,
+            isKit: i.expand?.product?.product_type === 'kit',
           })),
         )
       }
@@ -487,9 +497,12 @@ export default function Vendas() {
                   {detailItems.map((i) => (
                     <div key={i.id} className="p-3 flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
-                          {i.name}
-                        </p>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className="font-serif text-sm font-bold text-[#1E3A2F] truncate">
+                            {i.name}
+                          </p>
+                          {i.isKit && <KitBadge />}
+                        </div>
                         <p className="text-[11px] text-[#6B7A70]">
                           {i.quantity} × {formatCurrency(i.unitPrice)}
                         </p>

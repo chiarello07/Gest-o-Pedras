@@ -22,6 +22,9 @@ import ProductModal from '@/components/ProductModal'
 import { categoryLabels, categoryStyles } from '@/lib/labels'
 import { ProductStoneTags } from '@/components/StoneTags'
 import { useStones } from '@/hooks/useStones'
+import { availableStock } from '@/services/products'
+import { KitBadge } from '@/components/KitBadge'
+import KitComponentsSummary from '@/components/KitComponentsSummary'
 import { Button } from '@/components/ui/button'
 
 export default function Index() {
@@ -73,13 +76,20 @@ export default function Index() {
 
   // KPIs
   // 1. Valor total em estoque (custo) = soma(quantity * cost)
+  // Kits não têm estoque próprio: seu custo já está contado nos componentes (sem dupla contagem).
   const totalStockCost = useMemo(() => {
-    return products.reduce((acc, p) => acc + (Number(p.quantity) || 0) * (Number(p.cost) || 0), 0)
+    return products.reduce(
+      (acc, p) =>
+        p.product_type === 'kit' ? acc : acc + (Number(p.quantity) || 0) * (Number(p.cost) || 0),
+      0,
+    )
   }, [products])
 
   // 2. Faturamento potencial = soma(quantity * (promo_price > 0 ? promo_price : price))
+  // Kits entram pelo preço dos componentes que efetivamente saem do estoque na venda.
   const potentialRevenue = useMemo(() => {
     return products.reduce((acc, p) => {
+      if (p.product_type === 'kit') return acc
       const effectivePrice =
         p.promo_price && Number(p.promo_price) > 0 ? Number(p.promo_price) : Number(p.price) || 0
       return acc + (Number(p.quantity) || 0) * effectivePrice
@@ -98,6 +108,13 @@ export default function Index() {
     return map
   }, [stones])
 
+  // Mapa id → Product para resolver componentes de kits (resumo + estoque)
+  const productsIndex = useMemo(() => {
+    const map: Record<string, Product> = {}
+    for (const p of products) map[p.id] = p
+    return map
+  }, [products])
+
   // 4. Caixa atual = soma(entradas) - soma(saidas) + vendas reais registradas
   const currentCash = useMemo(() => {
     const salesTotal = sales.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
@@ -110,7 +127,7 @@ export default function Index() {
 
   // Destaque do Dia: produto com maior margem de lucro com estoque > 0
   const highlightProduct = useMemo(() => {
-    const available = products.filter((p) => (Number(p.quantity) || 0) > 0)
+    const available = products.filter((p) => availableStock(p, productsIndex) > 0)
     if (available.length === 0) return products[0] || null
 
     let best = available[0]
