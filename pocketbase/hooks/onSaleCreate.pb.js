@@ -24,7 +24,7 @@ onRecordCreate((e) => {
   // `items` é campo json: pode chegar como array nativo (SDK serializa) ou,
   // de clientes antigos, como string JSON (inclusive dupla-serializada).
   let raw = e.record.getString('items')
-  if (!raw) {
+  if (!raw || raw === 'null') {
     e.next()
     return
   }
@@ -104,8 +104,29 @@ onRecordCreate((e) => {
             if (compAvailable < available) available = compAvailable
           }
           if (quantity > available) {
+            // Nomeia o componente que limitou o kit, para o usuário saber o que repor
+            let limitingName = 'componente'
+            let limitingQty = 0
+            for (const id in comps) {
+              const cap = Math.floor(comps[id].getFloat('quantity') / needed[id])
+              if (cap === available) {
+                limitingName = comps[id].getString('name')
+                limitingQty = comps[id].getFloat('quantity')
+                break
+              }
+            }
             throw new BadRequestError(
-              'Estoque insuficiente de componentes para o kit "' + product.getString('name') + '".',
+              'Estoque insuficiente para vender ' +
+                quantity +
+                ' unidade(s) do kit "' +
+                product.getString('name') +
+                '" — disponível: ' +
+                available +
+                '. Motivo: estoque insuficiente do componente "' +
+                limitingName +
+                '" (disponível: ' +
+                limitingQty +
+                ').',
             )
           }
           // A baixa é sempre nos COMPONENTES: 1 unidade por ocorrência no kit,
@@ -118,7 +139,13 @@ onRecordCreate((e) => {
         available = product.getFloat('quantity')
         if (quantity > available) {
           throw new BadRequestError(
-            'Estoque insuficiente para "' + product.getString('name') + '".',
+            'Estoque insuficiente do produto "' +
+              product.getString('name') +
+              '" — disponível: ' +
+              Math.floor(available) +
+              ', solicitado: ' +
+              quantity +
+              '.',
           )
         }
         addDecrement(product, quantity)
@@ -142,7 +169,19 @@ onRecordCreate((e) => {
 
     for (const id in decQty) {
       const entry = decQty[id]
-      const newQty = Math.max(entry.record.getFloat('quantity') - entry.qty, 0)
+      const currentQty = entry.record.getFloat('quantity')
+      if (entry.qty > currentQty) {
+        throw new BadRequestError(
+          'Estoque insuficiente do produto "' +
+            entry.record.getString('name') +
+            '" — disponível: ' +
+            Math.floor(currentQty) +
+            ', solicitado: ' +
+            entry.qty +
+            '.',
+        )
+      }
+      const newQty = Math.max(currentQty - entry.qty, 0)
       entry.record.set('quantity', newQty)
       tx.save(entry.record)
     }
