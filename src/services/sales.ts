@@ -23,17 +23,38 @@ export async function getSales(options?: { filter?: string; sort?: string }): Pr
   })
 }
 
+/** Converte a data para o formato aceito pelo PocketBase (ISO 8601 / RFC 3339 UTC). */
+function toPbDate(value: string): string {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return value
+  return d.toISOString()
+}
+
 /**
  * Registra uma venda multi-itens. O backend (pb_hook) valida estoque,
  * cria os sale_items e decrementa a quantidade dos produtos.
+ *
+ * O campo `items` (json) é enviado como ARRAY NATIVO — nunca JSON.stringify:
+ * o SDK serializa sozinho e uma string dupla-serializada quebra o pb_hook.
+ * O `total` vai preenchido porque o campo é required (o hook recalcula
+ * depois, a partir dos itens validados).
  */
 export async function createSale(input: CreateSaleInput): Promise<Sale> {
+  const items = (input.items || []).map((i) => ({
+    product: i.product,
+    quantity: i.quantity,
+    unit_price: i.unit_price,
+  }))
   return pb.collection('sales').create<Sale>({
     channel: input.channel,
-    date: input.date,
+    date: toPbDate(input.date),
     customer: input.customer || '',
     status: input.status || 'concluida',
-    items: JSON.stringify(input.items),
+    total: items.reduce(
+      (acc, i) => acc + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0),
+      0,
+    ),
+    items,
   })
 }
 

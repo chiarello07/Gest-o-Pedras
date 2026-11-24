@@ -21,7 +21,9 @@
  * `items` não vier, o hook não interfere (o client grava product/quantity/total direto).
  */
 onRecordCreate((e) => {
-  const raw = e.record.getString('items')
+  // `items` é campo json: pode chegar como array nativo (SDK serializa) ou,
+  // de clientes antigos, como string JSON (inclusive dupla-serializada).
+  let raw = e.record.getString('items')
   if (!raw) {
     e.next()
     return
@@ -30,6 +32,8 @@ onRecordCreate((e) => {
   let parsed
   try {
     parsed = JSON.parse(raw)
+    // Aceita a forma nativa (campo json) e a string simples/dupla de clientes antigos
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed)
   } catch (_) {
     throw new BadRequestError('O campo items deve ser um JSON válido.')
   }
